@@ -273,13 +273,15 @@ class PlinkoGame:
         pygame.display.set_caption("DOST 3 Plinko Reward Game")
         self.clock = pygame.time.Clock()
         
+        self.logo = pygame.image.load("dost_logo.png").convert_alpha()
+        self.logo = pygame.transform.smoothscale(self.logo, (150, 150))  # resize if needed
 
         # Game states
         self.launched_once = False
         self.state = "splash"  # splash, playing, result
-        self.font_large = pygame.font.Font(None, 72)
-        self.font_medium = pygame.font.Font(None, 48)
-        self.font_small = pygame.font.Font(None, 36)
+        self.font_large = pygame.font.Font(None, 65)
+        self.font_medium = pygame.font.Font(None, 42)
+        self.font_small = pygame.font.Font(None, 30)
         self.font_tiny = pygame.font.Font(None, 12)
 
         # Game objects
@@ -298,8 +300,8 @@ class PlinkoGame:
         pegs = []
         rows = 11
         start_y = 180  # was 150 → moves pegs lower
-        horizontal_spacing = 40  # was 50 → spreads them wider
-        vertical_spacing = 38    # was 35 → slightly taller rows
+        horizontal_spacing = 50  # was 50 → spreads them wider
+        vertical_spacing = 40    # was 35 → slightly taller rows
 
         for row in range(rows):
             y = start_y + row * vertical_spacing
@@ -350,12 +352,17 @@ class PlinkoGame:
 
     def draw_splash_screen(self):
         self.screen.fill((20, 50, 80))
-        title = self.font_large.render("DOST 3 EVENT", True, GOLD)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH//2, 150))
-        self.screen.blit(title, title_rect)
+        # title = self.font_large.render("DOST 3 EVENT", True, GOLD)
+        # title_rect = title.get_rect(center=(SCREEN_WIDTH//2, 150))
+        # self.screen.blit(title, title_rect)
 
+
+        # Draw DOST logo centered below title
+        logo_rect = self.logo.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT * 0.20))
+        self.screen.blit(self.logo, logo_rect)
+        
         subtitle = self.font_medium.render("PLINKO REWARD GAME", True, WHITE)
-        subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH//2, 220))
+        subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT * 0.35))
         self.screen.blit(subtitle, subtitle_rect)
 
         instructions = [
@@ -421,19 +428,19 @@ class PlinkoGame:
             pygame.draw.rect(self.screen, color, (x, slot_y, slot_width, 80))
             pygame.draw.rect(self.screen, BLACK, (x, slot_y, slot_width, 80), 2)
 
-            # wrap long texts
-            if len(reward) > 12:
-                lines = reward.split()
-                mid = len(lines) // 2
-                line1 = " ".join(lines[:mid])
-                line2 = " ".join(lines[mid:])
-                t1 = self.font_tiny.render(line1, True, BLACK)
-                t2 = self.font_tiny.render(line2, True, BLACK)
-                self.screen.blit(t1, t1.get_rect(center=(x + slot_width//2, slot_y + 25)))
-                self.screen.blit(t2, t2.get_rect(center=(x + slot_width//2, slot_y + 50)))
-            else:
-                t = self.font_tiny.render(reward, True, BLACK)
-                self.screen.blit(t, t.get_rect(center=(x + slot_width//2, slot_y + 40)))
+            # # wrap long texts
+            # if len(reward) > 12:
+            #     lines = reward.split()
+            #     mid = len(lines) // 2
+            #     line1 = " ".join(lines[:mid])
+            #     line2 = " ".join(lines[mid:])
+            #     t1 = self.font_tiny.render(line1, True, BLACK)
+            #     t2 = self.font_tiny.render(line2, True, BLACK)
+            #     self.screen.blit(t1, t1.get_rect(center=(x + slot_width//2, slot_y + 25)))
+            #     self.screen.blit(t2, t2.get_rect(center=(x + slot_width//2, slot_y + 50)))
+            # else:
+            #     t = self.font_tiny.render(reward, True, BLACK)
+            #     self.screen.blit(t, t.get_rect(center=(x + slot_width//2, slot_y + 40)))
 
         # Balls
         for ball in self.balls:
