@@ -8,6 +8,8 @@ charset-normalizer==3.4.3
 decorator==5.2.1
 defusedxml==0.7.1
 docopt==0.6.2
+dotenv==0.9.9
+toml==0.10.2
 executing==2.2.0
 fastjsonschema==2.21.1
 idna==3.10
