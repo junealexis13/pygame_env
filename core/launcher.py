@@ -4,9 +4,9 @@ import math
 import sys
 import tomllib, os
 
-from ball import Ball
+from .ball import Ball
 
-with open('gameconfig.toml', 'rb') as conf:
+with open(os.path.join("core",'gameconfig.toml'), 'rb') as conf:
     GAME_CONFIGS = tomllib.load(conf)
     VIEW = GAME_CONFIGS['view_parameters']
     COLORS = GAME_CONFIGS['colormaps']

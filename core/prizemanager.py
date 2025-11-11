@@ -1,7 +1,8 @@
 import sqlite3
+import os
 
 class PrizeManager:
-    def __init__(self, db_path='prizes.db', initial_prizes=None):
+    def __init__(self, db_path=os.path.join('db','prizes.db'), initial_prizes=None):
         self.db_path = db_path
         self.prizes = {}
         

@@ -6,15 +6,15 @@ import tomllib, os
 from datetime import datetime
 
 # Game comps
-from ball import Ball
-from launcher import PinballLauncher
-from buttons import Button 
-from prizemanager import PrizeManager
+from core.ball import Ball
+from core.launcher import PinballLauncher
+from core.buttons import Button 
+from core.prizemanager import PrizeManager
 
 # Initialize Pygame
 pygame.init()
 
-with open('gameconfig.toml', 'rb') as conf:
+with open(os.path.join("core","gameconfig.toml"), 'rb') as conf:
     GAME_CONFIGS = tomllib.load(conf)
     VIEW = GAME_CONFIGS['view_parameters']
     COLORS = GAME_CONFIGS['colormaps']
@@ -42,7 +42,7 @@ class PlinkoGame:
         pygame.display.set_caption("DOST 3 Plinko Reward Game")
         self.clock = pygame.time.Clock()
         
-        self.logo = pygame.image.load("dost_logo.png").convert_alpha()
+        self.logo = pygame.image.load(os.path.join("resources","dost_logo.png")).convert_alpha()
         self.logo = pygame.transform.smoothscale(self.logo, (150, 150))
 
         # Game states
@@ -101,7 +101,7 @@ class PlinkoGame:
 
     def create_reward_slots(self):
         #preload prize_array
-        with open('prize_arrangement.toml', 'rb') as f:
+        with open(os.path.join('core','prize_arrangement.toml'), 'rb') as f:
             data = tomllib.load(f); f.close()
 
         pz_arr = data['prize_array']
