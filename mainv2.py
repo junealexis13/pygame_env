@@ -27,16 +27,15 @@ PEG_RADIUS = VIEW['PEG_RADIUS']
 FPS = VIEW['FPS']
 
 class PlinkoGame:
-    def __init__(self,initial_prizes, seed=None):
+    def __init__(self, seed=None):
         # Set seed FIRST before any random calls
 
         #####INIT#####
-        
-
+        self.selected_prize = None
+        self.temp_input = None
         self.seed = seed if seed is not None else int(datetime.now().timestamp() * 1000000)
         random.seed(self.seed)
 
-        print(f'GAMEINSTANCE with seed {random.seed(self.seed)} - {datetime.now()} ')
         self.ball_rng = random.Random(self.seed + 1)
         
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -51,6 +50,7 @@ class PlinkoGame:
         self.state = "splash"
         self.font_large = pygame.font.Font(None, 65)
         self.font_medium = pygame.font.Font(None, 42)
+        self.font_sm_medium = pygame.font.Font(None, 35)
         self.font_small = pygame.font.Font(None, 30)
         self.font_tiny = pygame.font.Font(None, 12)
 
@@ -60,7 +60,7 @@ class PlinkoGame:
         self.balls = []
         self.pegs = self.create_pegs()
         self.reward_slots = self.create_reward_slots()
-        self.prize_manager = PrizeManager(initial_prizes=initial_prizes)
+        self.prize_manager = PrizeManager()
         self.launcher = PinballLauncher(80, SCREEN_HEIGHT // 2 + 60, ball_rng=self.ball_rng)
         self.back_button = Button(20, 20, 100, 40, "Back", COLORS['BLUE'], COLORS['WHITE'])
 
@@ -68,6 +68,10 @@ class PlinkoGame:
         self.last_reward = None
         self.result_timer = 0
         self.mouse_pressed = False
+
+        self.edit_prizes_button = Button(SCREEN_WIDTH - 150, 20, 130, 40, "Edit Prizes", COLORS['BLUE'], COLORS['WHITE'])
+        self.editing_prizes = False
+        self.prize_inputs = []
 
         self.recorded_outcomes = []
         
@@ -79,7 +83,7 @@ class PlinkoGame:
 
     def create_pegs(self):
         pegs = []
-        rows = 11
+        rows = 12
         start_y = 180
         horizontal_spacing = PEG_DISTANCE['h_spacing']
         vertical_spacing = PEG_DISTANCE['v_spacing']
@@ -91,24 +95,30 @@ class PlinkoGame:
             for i in range(pegs_in_row):
                 x = start_x + i * horizontal_spacing
                 # Deterministic jitter based on seed
-                jitter = 5 if row % 2 == 0 else -5
+                jitter = 4 if row % 2 == 0 else -4
                 pegs.append((int(x + jitter), int(y)))
         return pegs
 
     def create_reward_slots(self):
+        #preload prize_array
+        with open('prize_arrangement.toml', 'rb') as f:
+            data = tomllib.load(f); f.close()
+
+        pz_arr = data['prize_array']
+
         very_common_color = (122, 215, 81)
         common_color = (68, 191, 112)
         uncommon_color = (52, 94, 141)
         grand_prize_color = (189, 223, 38)
 
         rewards = [
-            ("Power Bank", 10, grand_prize_color, 0.35),
-            ("Newton's Cradle", 30, uncommon_color, 0.8),
-            ("32GB Flash Drive", 20, common_color, 1.0),
-            ("Gcash Load", 100, grand_prize_color, 2.5),
-            ("32GB Flash Drive", 20, common_color, 1.0),
-            ("Newton's Cradle", 30, uncommon_color, 0.8),
-            ("Power Bank", 10, grand_prize_color, 0.35)
+            (pz_arr['p1'], 20, grand_prize_color, 1.0),
+            (pz_arr['p2'], 30, uncommon_color, 1.0),
+            (pz_arr['p3'], 40, common_color, 1.0),
+            (pz_arr['p4'], 50, very_common_color, 1.0),
+            (pz_arr['p5'], 20, common_color, 1.0),
+            (pz_arr['p6'], 30, uncommon_color, 1.0),
+            (pz_arr['p7'], 20, grand_prize_color, 1.0)
         ]
         return rewards
 
@@ -155,6 +165,62 @@ class PlinkoGame:
         # Use pre-generated dots for determinism
         for x, y, color in self.splash_dots:
             pygame.draw.circle(self.screen, color, (x, y), 2)
+
+        self.edit_prizes_button.draw(self.screen)
+
+        if self.editing_prizes:
+            self.draw_prize_editor()
+
+    def draw_prize_editor(self):
+        # Draw semi-transparent overlay
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(180)
+        overlay.fill(COLORS['BLACK'])
+        self.screen.blit(overlay, (0, 0))
+
+        # Draw editor window
+        box_width = 400
+        box_height = 500
+        box_x = (SCREEN_WIDTH - box_width) // 2
+        box_y = (SCREEN_HEIGHT - box_height) // 2
+        
+        # Draw main window
+        pygame.draw.rect(self.screen, COLORS['WHITE'], (box_x, box_y, box_width, box_height))
+        pygame.draw.rect(self.screen, COLORS['GOLD'], (box_x, box_y, box_width, box_height), 5)
+
+        # Draw title
+        title = self.font_small.render("Edit Prizes", True, COLORS['BLACK'])
+        title_rect = title.get_rect(center=(SCREEN_WIDTH//2, box_y + 40))
+        self.screen.blit(title, title_rect)
+
+        # Draw prize entries
+        y_offset = box_y + 100
+        for i, prize_name in enumerate(self.prize_manager.prizes.keys()):
+            text = self.font_small.render(f"{prize_name}: ", True, COLORS['BLACK'])
+            self.screen.blit(text, (box_x + 20, y_offset + i * 50))
+            
+            # Draw input box
+            input_rect = pygame.Rect(box_x + 200, y_offset + i * 50, 100, 30)
+            pygame.draw.rect(self.screen, COLORS['BLACK'], input_rect, 2)
+            
+            if hasattr(self, 'selected_prize') and self.selected_prize == prize_name:
+                pygame.draw.rect(self.screen, COLORS['CYAN'], input_rect, 2)
+                value_text = self.font_small.render(str(self.temp_input), True, COLORS['BLACK'])
+            else:
+                value_text = self.font_small.render(str(self.prize_manager.prizes[prize_name]), True, COLORS['BLACK'])
+            self.screen.blit(value_text, (input_rect.x + 5, input_rect.y + 5))
+
+        # Draw save button - this was missing!
+        save_button = Button(
+            box_x + box_width//2 - 50,  # x position
+            box_y + box_height - 60,     # y position
+            100,                         # width
+            40,                          # height
+            "Save",                      # text
+            COLORS['GREEN'],             # button color
+            COLORS['WHITE']              # text color
+        )
+        save_button.draw(self.screen)
 
     def draw_game(self):
         self.screen.fill((30, 30, 50))
@@ -240,8 +306,53 @@ class PlinkoGame:
     def handle_events(self, events):
         for event in events:
             if self.state == "splash":
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.state = "playing"
+                if self.editing_prizes:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        mouse_pos = event.pos
+                        box_x = (SCREEN_WIDTH - 400) // 2
+                        box_y = (SCREEN_HEIGHT - 500) // 2
+                        box_width = 400
+                        box_height = 500
+
+                        # Check for clicks on input boxes
+                        y_offset = box_y + 100
+                        for i, prize_name in enumerate(self.prize_manager.prizes.keys()):
+                            input_rect = pygame.Rect(box_x + 200, y_offset + i * 50, 100, 30)
+                            if input_rect.collidepoint(mouse_pos):
+                                # Handle input box click
+                                current_value = str(self.prize_manager.prizes[prize_name])
+                                new_value = self.get_user_input(prize_name, current_value)
+                                if new_value is not None:
+                                    try:
+                                        new_value = int(new_value)
+                                        if new_value >= 0:
+                                            self.prize_manager.prizes[prize_name] = new_value
+                                    except ValueError:
+                                        pass
+
+                        # Check for save button click
+                        save_button_rect = pygame.Rect(box_x + box_width//2 - 50, 
+                                                    box_y + box_height - 60, 
+                                                    100, 40)
+                        if save_button_rect.collidepoint(mouse_pos):
+                            self.editing_prizes = False
+                            self.prize_manager.save_prizes()
+
+                        # Close editor if clicking outside the box
+                        editor_rect = pygame.Rect(box_x, box_y, box_width, box_height)
+                        if not editor_rect.collidepoint(mouse_pos):
+                            self.editing_prizes = False
+
+                else:
+                    # Handle normal splash screen events
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if self.edit_prizes_button.rect.collidepoint(event.pos):
+                            self.editing_prizes = True
+                        else:
+                            self.state = "playing"
+
+                    elif event.type == pygame.MOUSEMOTION:
+                        self.edit_prizes_button.handle_event(event)
 
             elif self.state == "playing":
                 if self.back_button.handle_event(event):
@@ -276,6 +387,51 @@ class PlinkoGame:
                 if not self.launched_once:
                     self.launcher.power = self.launcher.max_power / 2
                 self.launched_once = False
+
+    def get_user_input(self, prize_name, current_value):
+        """Helper method to get user input for prize values"""
+        pygame.key.start_text_input()
+        self.selected_prize = prize_name
+        self.temp_input = current_value  # Initialize temp_input with current value
+        input_active = True
+        
+        while input_active:
+            for evt in pygame.event.get():
+                if evt.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if evt.type == pygame.KEYDOWN:
+                    if evt.key == pygame.K_RETURN:
+                        input_active = False
+                    elif evt.key == pygame.K_BACKSPACE:
+                        self.temp_input = self.temp_input[:-1]
+                    elif evt.key == pygame.K_ESCAPE:
+                        self.selected_prize = None
+                        self.temp_input = None  # Reset temp_input
+                        return None
+                    elif evt.unicode.isnumeric():
+                        self.temp_input += evt.unicode
+
+                elif evt.type == pygame.MOUSEBUTTONDOWN:
+                    # Click outside input box ends editing
+                    mouse_pos = evt.pos
+                    box_x = (SCREEN_WIDTH - 400) // 2
+                    box_y = (SCREEN_HEIGHT - 500) // 2
+                    input_rect = pygame.Rect(box_x + 200, box_y + 100 + list(self.prize_manager.prizes.keys()).index(prize_name) * 50, 100, 30)
+                    if not input_rect.collidepoint(mouse_pos):
+                        input_active = False
+            
+            # Redraw screen with current input
+            self.draw_splash_screen()
+            pygame.display.flip()
+            self.clock.tick(FPS)
+        
+        pygame.key.stop_text_input()
+        final_value = self.temp_input
+        self.selected_prize = None
+        self.temp_input = None  # Reset temp_input
+        return final_value
 
     def update(self):
         if self.state == "playing":
@@ -363,13 +519,7 @@ class PlinkoGame:
         sys.exit()
 
 if __name__ == "__main__":
-    import json
-
-    with open("/Users/junealexis.santos13gmail.com/Documents/projects/pygame_env/prizes.json", 'rb') as prz:
-        prize = json.load(prz)
-
-    
-        
-    seed = 123456
-    game = PlinkoGame(seed=seed,initial_prizes=prize)
+    game = PlinkoGame()
     game.run()
+
+

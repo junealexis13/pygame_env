@@ -1,0 +1,13 @@
+#there are 7 rewards and in this game. Assign the numbers based on the numbers from
+#left to right.
+#it goes like [1] [2] [3] [4] [5] [6] [7] --
+# choices [Ecobag, Notepad, Ballpen, Gcash Load]
+
+[prize_array]
+p1 = "Gcash Load"
+p2 = "Notepad"
+p3 = "Ballpen"
+p4 = "Ecobag"
+p5 = "Ballpen"
+p6 = "Notepad"
+p7 = "Gcash Load"

@@ -2,7 +2,7 @@
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
 FPS = 60
-PEG_RADIUS = 8
+PEG_RADIUS = 7
 
 [colormaps]
 WHITE = [255, 255, 255]
@@ -20,10 +20,10 @@ SILVER = [192, 192, 192]
 GRAY = [128, 128, 128]
 
 [ball_physics]
-gravity = 0.15
-bounce = 0.9
-friction = 0.98
+gravity = 0.2
+bounce = 1.2
+friction = 0.93
 
 [peg_distances]
-h_spacing = 35
-v_spacing = 35
+h_spacing = 36
+v_spacing = 32

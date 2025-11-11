@@ -1,38 +1,52 @@
 import sqlite3
 
 class PrizeManager:
-    def __init__(self, db_path="prizes.db", initial_prizes=None):
-        self.conn = sqlite3.connect(db_path)
-        self.create_prize_table(initial_prizes or [])
+    def __init__(self, db_path='prizes.db', initial_prizes=None):
+        self.db_path = db_path
+        self.prizes = {}
+        
 
-    def create_prize_table(self, prizes):
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS prizes (
-                name TEXT PRIMARY KEY,
-                count INTEGER
-            )
-        """)
-        for prize, count in prizes.items():
-            cursor.execute("INSERT OR IGNORE INTO prizes (name, count) VALUES (?, ?)", (prize, count))
-        self.conn.commit()
+        # Load existing prizes from database
+        self.load_prizes()
+
+    def init_db(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS prizes
+                (name TEXT PRIMARY KEY, count INTEGER)
+            ''')
+
+            conn.commit()
+
+    def load_prizes(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT name, count FROM prizes')
+            for name, quantity in cursor.fetchall():
+                self.prizes[name] = quantity
+
+    def initialize_prizes(self):
+        self.load_prizes()
+
+    def save_prizes(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            for name, quantity in self.prizes.items():
+                cursor.execute('''
+                    UPDATE prizes SET count = ? WHERE name = ?
+                ''', (quantity, name))
+            conn.commit()
 
     def get_prize_count(self, prize_name):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT count FROM prizes WHERE name = ?", (prize_name,))
-        result = cursor.fetchone()
-        return result[0] if result else 0
+        return self.prizes.get(prize_name, 0)
 
     def decrement_prize(self, prize_name):
-        cursor = self.conn.cursor()
-        cursor.execute("UPDATE prizes SET count = count - 1 WHERE name = ? AND count > 0", (prize_name,))
-        self.conn.commit()
-
-    def prizes_available(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT SUM(count) FROM prizes")
-        result = cursor.fetchone()
-        return result[0] > 0 if result else False
+        if prize_name in self.prizes and self.prizes[prize_name] > 0:
+            self.prizes[prize_name] -= 1
+            self.save_prizes()
+            return True
+        return False
 
     def close(self):
-        self.conn.close()
+        self.save_prizes()

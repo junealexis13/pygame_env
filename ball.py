@@ -33,6 +33,7 @@ class Ball:
         self.bounce = BALLPHYSICS['bounce']
         self.friction = BALLPHYSICS['friction']
         self.active = True
+        self.ramp_t = 0.0
 
         # For ramp behavior
         self.follow_ramp = follow_ramp
@@ -65,6 +66,11 @@ class Ball:
                     self.active = False  # mark as failed
                     return
 
+            if self.ramp_t >= 1.0:
+                self.follow_ramp = False
+                # Set initial velocity based on launch power when transitioning to peg field
+                self.vx = self.rng.uniform(-0.3, 0.3)
+                self.vy = self.launch_speed * 12
             else:
                 # FIXED: Use constant curve speed regardless of launch power
                 if not hasattr(self, "curve_t"):

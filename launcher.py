@@ -41,21 +41,22 @@ class PinballLauncher:
         if self.power <= 0:
             return None, 0
 
-        velocity_magnitude = (self.power / self.max_power) * 10  # max speed scale
-        vx = 0.0
-        vy = -velocity_magnitude
-        
-        # FIXED: Pass RNG from game for reproducibility
-        ball = Ball(self.x, self.y - 30, vx, vy, follow_ramp=True, rng=self.ball_rng)
-        ball.launch_speed = self.power / self.max_power
-        ball.vy = -velocity_magnitude  # upward climb in tube
+        # Calculate the velocity based on power
+        velocity_magnitude = (self.power / self.max_power) * 15 
+        vx = 0.0  # Horizontal velocity (can be adjusted if needed)
+        vy = -velocity_magnitude  # Vertical velocity (upward)
 
-        # set starting ramp position for the ball
+        # Create the ball with the calculated velocities
+        ball = Ball(self.x, self.y - 30, vx, vy, follow_ramp=True)
+        ball.launch_speed = self.power / self.max_power  
+        ball.vy = vy  
+
+        # Set starting ramp position for the ball
         ball.start_ramp_x = self.x
-        ball.start_ramp_y = self.y - 60
+        ball.start_ramp_y = self.y - 80
 
         launched_power = self.power
-        self.power = 0.0
+        self.power = 0.0  
         return ball, launched_power
 
     def draw(self, screen):
@@ -87,17 +88,15 @@ class PinballLauncher:
         end_x = SCREEN_WIDTH // 2
         end_y = 100
         control_x = (straight_end_x + end_x) / 2
-        control_y = straight_end_y - 100  # peak height of U
+        control_y = straight_end_y - 90  # peak height of U
 
         ramp_points = []
         for i in range(20):
             t = i / 19.0
-            # Quadratic Bezier formula
             rx = (1 - t)**2 * straight_end_x + 2 * (1 - t) * t * control_x + t**2 * end_x
             ry = (1 - t)**2 * straight_end_y + 2 * (1 - t) * t * control_y + t**2 * end_y
             ramp_points.append((int(rx), int(ry)))
 
-        # draw curve segment
         for i in range(len(ramp_points) - 1):
             pygame.draw.line(screen, COLORS['WHITE'],
                             (ramp_points[i][0] - 5, ramp_points[i][1] - 4),
